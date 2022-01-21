@@ -606,7 +606,7 @@ fn set_txtime_sockopt(sock: &mio::net::UdpSocket) -> io::Result<()> {
     use nix::sys::socket::sockopt::TxTime;
     use std::os::unix::io::AsRawFd;
 
-    let config = libc::sock_txtime {
+    let config = nix::libc::sock_txtime {
         clockid: libc::CLOCK_MONOTONIC,
         flags: 0,
     };
@@ -632,7 +632,7 @@ fn set_txtime_sockopt(_: &mio::net::UdpSocket) -> io::Result<()> {
 /// sendmsg syscall also includes the time the packet needs to be
 /// sent by the kernel in msghdr.
 ///
-/// Note that sendmsg syscal is used only on linux platforms.
+/// Note that sendmsg syscall is used only on linux platforms.
 #[cfg(target_os = "linux")]
 fn send_to(
     sock: &mio::net::UdpSocket, send_buf: &[u8], send_info: &quiche::SendInfo,
@@ -640,20 +640,19 @@ fn send_to(
 ) -> io::Result<usize> {
     use nix::sys::socket::sendmsg;
     use nix::sys::socket::ControlMessage;
-    use nix::sys::socket::InetAddr;
     use nix::sys::socket::MsgFlags;
-    use nix::sys::socket::SockAddr;
-    use nix::sys::uio::IoVec;
+    use nix::sys::socket::SockaddrStorage;
+    use std::io::IoSlice;
     use std::os::unix::io::AsRawFd;
 
     if !pacing {
-        return sock.send_to(send_buf, &send_info.to);
+        return sock.send_to(send_buf, send_info.to);
     }
 
     let nanos_per_sec: u64 = 1_000_000_000;
     let sockfd = sock.as_raw_fd();
     let len = send_buf.len();
-    let iov = [IoVec::from_slice(&send_buf[..len])];
+    let iov = [IoSlice::new(&send_buf[..len])];
 
     let mut time_spec = libc::timespec {
         tv_sec: 0,
@@ -672,7 +671,7 @@ fn send_to(
         time_spec.tv_sec as u64 * nanos_per_sec + time_spec.tv_nsec as u64;
 
     let cmsg = ControlMessage::TxTime(&send_time);
-    let addr = SockAddr::new_inet(InetAddr::from_std(&send_info.to));
+    let addr = SockaddrStorage::from(send_info.to);
 
     match sendmsg(sockfd, &iov, &[cmsg], MsgFlags::empty(), Some(&addr)) {
         Ok(written) => Ok(written),

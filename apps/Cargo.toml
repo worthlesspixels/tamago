@@ -29,12 +29,8 @@ log = "0.4"
 ring = "0.16"
 quiche = { path = "../quiche" }
 libc = "0.2"
-# Needs update once merged to upstream
-# https://github.com/nix-rust/nix/pull/1564
-nix = { git = "https://github.com/ghedo/nix.git", branch = "so_txtime" }
-
-[profile.release]
-debug = true
+# TODO: Update when there is a release tag
+nix = { git = "https://github.com/nix-rust/nix.git", branch = "master" }
 
 [lib]
 crate-type = ["lib"]
