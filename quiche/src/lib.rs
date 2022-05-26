@@ -1897,6 +1897,11 @@ impl Connection {
             }
         }
 
+        // Reset pacer and start a new burst if packet received.
+        if done > 0 {
+            self.recovery.pacer.reset();
+        }
+
         Ok(done)
     }
 
